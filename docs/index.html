@@ -326,21 +326,40 @@
 <div class="matrix-wrap">
 <table class="matrix">
   <thead>
-    <tr><th>macbook</th><th>distro</th><th>status</th></tr>
+    <tr><th>macbook</th><th>distro</th><th>kernel</th><th>status</th></tr>
   </thead>
   <tbody>
     <tr>
       <td>macbook air 2017 <span style="color: var(--muted)">(MacBookAir7,2)</span></td>
       <td>fedora workstation 44</td>
+      <td><span style="color: var(--muted)">6.19</span></td>
       <td class="ok">[ supported ]</td>
     </tr>
     <tr>
-      <td colspan="2"><span style="color: var(--muted)">// more devices &amp; distros…</span></td>
+      <td>macbook air 2017 <span style="color: var(--muted)">(MacBookAir7,2)</span></td>
+      <td>debian 13 (trixie)</td>
+      <td><span style="color: var(--muted)">6.12 lts</span></td>
+      <td class="ok">[ supported ]</td>
+    </tr>
+    <tr>
+      <td colspan="3"><span style="color: var(--muted)">// more devices &amp; distros…</span></td>
       <td class="pln">[ planned ]</td>
     </tr>
   </tbody>
 </table>
 </div>
+
+<h2>known issues</h2>
+<ul>
+  <li>
+    <strong>facetimehd camera</strong> on kernel ≥ 6.15 (fedora 44 ships 6.19):
+    upstream regression — driver loads, captures one frame, then gstreamer/pipewire pipeline freezes.
+    <br><span style="color: var(--muted)">// cheese, gnome snapshot → frozen</span>
+    <br><span style="color: var(--muted)">// browser-based apps (zoom web, google meet, <a href="https://webcamtests.com">webcamtests.com</a>) work fine — they bypass gstreamer</span>
+    <br><span style="color: var(--muted)">// tracker: <a href="https://github.com/patjak/facetimehd/issues/315">patjak/facetimehd#315</a> — no fix as of may 2026</span>
+    <br><span style="color: var(--muted)">// debian 13 (kernel 6.12) and ubuntu 24.04 (6.8) sit before the regression — camera streams live in all apps. targets coming.</span>
+  </li>
+</ul>
 
 <h2>before you run it</h2>
 <ul>
@@ -356,7 +375,7 @@
 </ul>
 
 <footer>
-  inspired by <a href="https://brew.sh">brew.sh</a>. mit licensed. <span class="cursor"></span>
+  mit licensed. <span class="cursor"></span>
 </footer>
 
   </div>

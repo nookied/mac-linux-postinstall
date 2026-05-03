@@ -639,8 +639,42 @@ section "9. lib/detect.sh — source guard + module isolation"
     detect_distro() { DISTRO_ID="fedora"; DISTRO_VERSION="44"; DISTRO_LIKE=""; export DISTRO_ID DISTRO_VERSION DISTRO_LIKE; }
     detect_all
     [[ "$TARGET" == "macbookair7_2-fedora44" ]]
-) && pass "detect_all (mocked device+distro): resolves to correct target" \
-   || fail "detect_all (mocked device+distro): resolves to correct target"
+) && pass "detect_all (mocked, fedora 44): resolves to macbookair7_2-fedora44" \
+   || fail "detect_all (mocked, fedora 44): resolves to macbookair7_2-fedora44"
+
+(
+    _MACLIN_COMMON_LOADED=1
+    has_cmd() { command -v "$1" >/dev/null 2>&1; }
+    die()  { echo "[die] $1" >&2; exit 1; }
+    log()  { :; }
+    warn() { :; }
+    . "$REPO_ROOT/lib/detect.sh"
+    detect_device() { DEVICE_PRODUCT="MacBookAir7,2"; DEVICE_SLUG="macbookair7_2"; export DEVICE_PRODUCT DEVICE_SLUG; }
+    detect_distro() { DISTRO_ID="debian"; DISTRO_VERSION="13"; DISTRO_LIKE=""; export DISTRO_ID DISTRO_VERSION DISTRO_LIKE; }
+    detect_all
+    [[ "$TARGET" == "macbookair7_2-debian13" ]]
+) && pass "detect_all (mocked, debian 13): resolves to macbookair7_2-debian13" \
+   || fail "detect_all (mocked, debian 13): resolves to macbookair7_2-debian13"
+
+# Verify Debian 13 target dir actually exists with the required scripts
+if [ -f "$REPO_ROOT/targets/macbookair7_2-debian13/essentials.sh" ] \
+   && [ -f "$REPO_ROOT/targets/macbookair7_2-debian13/extras.sh" ]; then
+    pass "macbookair7_2-debian13 target: essentials.sh and extras.sh present"
+else
+    fail "macbookair7_2-debian13 target: essentials.sh and extras.sh present"
+fi
+
+# Bash syntax check on the new Debian 13 scripts (covered by section 1's
+# loop over targets, but call out explicitly here so a failure is obvious).
+for f in "$REPO_ROOT/targets/macbookair7_2-debian13/essentials.sh" \
+         "$REPO_ROOT/targets/macbookair7_2-debian13/extras.sh"; do
+    name="${f#"$REPO_ROOT/"}"
+    if bash -n "$f" 2>/dev/null; then
+        pass "bash -n $name"
+    else
+        fail "bash -n $name" "$(bash -n "$f" 2>&1 | head -3)"
+    fi
+done
 
 # =============================================================================
 # Summary

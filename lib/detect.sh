@@ -72,6 +72,9 @@ resolve_target() {
         macbookair7_2-fedora-44)
             TARGET="macbookair7_2-fedora44"
             ;;
+        macbookair7_2-debian-13)
+            TARGET="macbookair7_2-debian13"
+            ;;
         # Future targets go here, e.g.:
         # macbookair7_2-ubuntu-24.04)
         #     TARGET="macbookair7_2-ubuntu2404"

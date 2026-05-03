@@ -39,10 +39,11 @@ bash -c "$(wget -qO- https://nookied.github.io/mac-linux-postinstall/install.sh)
 
 ## Supported targets
 
-| MacBook | Distro | Status |
-|---|---|---|
-| MacBook Air 2017 (`MacBookAir7,2`) | Fedora Workstation 44 | Supported |
-| more devices & distros… | | Planned |
+| MacBook | Distro | Kernel | Status |
+|---|---|---|---|
+| MacBook Air 2017 (`MacBookAir7,2`) | Fedora Workstation 44 | 6.19 | Supported |
+| MacBook Air 2017 (`MacBookAir7,2`) | Debian 13 (Trixie) | 6.12 LTS | Supported |
+| more devices & distros… | | | Planned |
 
 If your hardware/distro combo isn't supported, the script will detect it and exit cleanly. [Open an issue](https://github.com/nookied/mac-linux-postinstall/issues) with what was detected and we'll consider adding it.
 
@@ -50,9 +51,9 @@ If your hardware/distro combo isn't supported, the script will detect it and exi
 
 ### Critical (always, no opt-out)
 
-- RPM Fusion repos (free + non-free)
-- Broadcom BCM4360 WiFi driver (`akmod-wl`)
-- Multimedia codecs (H.264, MP3, ffmpeg full)
+- Distro-specific extra repos enabled (RPM Fusion on Fedora, `non-free-firmware` + `contrib` on Debian)
+- Broadcom BCM4360 WiFi driver (`akmod-wl` on Fedora, `broadcom-sta-dkms` on Debian)
+- Multimedia codecs (H.264, MP3, full ffmpeg, full GStreamer plugin set)
 - Function-key behavior fix (brightness/volume work without `Fn`)
 
 ### Optional (interactive checklist before install)
@@ -62,7 +63,23 @@ If your hardware/distro combo isn't supported, the script will detect it and exi
 - **Flathub** — the full Flathub remote (Fedora's default is filtered)
 - **Dev tools** — git, neovim, tmux, gcc, clang, ripgrep, fd, jq
 - **GNOME Tweaks + Extension Manager**
-- **FaceTime HD camera driver** — off by default, fragile
+- **FaceTime HD camera driver** — off by default, fragile (see Known Issues below)
+
+## Known issues
+
+### FaceTime HD camera freezes on Fedora 44 (and any Linux on kernel ≥ 6.15)
+
+The reverse-engineered `patjak/facetimehd` driver has an [open upstream regression](https://github.com/patjak/facetimehd/issues/315) on Linux kernels 6.15 and later. The module loads, captures one frame, then the GStreamer/PipeWire pipeline can't continue streaming — so **Cheese, GNOME Snapshot, and similar GStreamer-based camera apps freeze on the first frame**.
+
+**Workaround**: browser-based camera apps work normally. They use v4l2 directly and bypass the broken pipeline.
+
+Confirmed working on the freezing kernels:
+- Zoom web client (`https://zoom.us/test`)
+- Google Meet
+- Discord (web)
+- [webcamtests.com](https://webcamtests.com)
+
+The script still installs the module so browser apps work — there's no downside to having it installed. Older-kernel distros sit before the regression window: **Debian 13** ships kernel 6.12 LTS, **Ubuntu 24.04 LTS** ships kernel 6.8 — both stream live in all apps. (Targets coming.)
 
 ## After it finishes
 

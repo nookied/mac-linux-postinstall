@@ -97,9 +97,37 @@ install_gnome_tweaks() {
 # does not exist; the correct one ships kmod-style pre-built modules per
 # kernel version). Verified Fedora 44 builds: see
 #   https://copr.fedorainfracloud.org/coprs/mulderje/facetimehd-kmod/
+#
+# KNOWN UPSTREAM REGRESSION on kernels 6.15+:
+#   patjak/facetimehd issue #315 — the module loads, captures one frame,
+#   then the GStreamer/PipeWire pipeline cannot continue streaming. Cheese,
+#   GNOME Snapshot, and other GStreamer-based apps all freeze. No fix
+#   upstream as of May 2026.
+#   Workaround: browser-based WebRTC apps (Zoom web client, Google Meet,
+#   Discord web, https://webcamtests.com) bypass GStreamer/PipeWire and
+#   stream live correctly.
+#   Fedora 44 ships kernel 6.19 — affected. We still install the module
+#   so browser camera apps work.
 install_facetimehd() {
     log "Installing FaceTime HD camera driver…"
     warn "FaceTime HD setup is fragile. Manual route: https://github.com/patjak/facetimehd/wiki/Get-Started"
+
+    # Warn the user about the kernel 6.15+ regression so they know what
+    # to expect after install. Detect by parsing major.minor from uname -r.
+    local _kmaj _kmin
+    _kmaj=$(uname -r | awk -F'[.-]' '{print $1}')
+    _kmin=$(uname -r | awk -F'[.-]' '{print $2}')
+    if [ "${_kmaj:-0}" -gt 6 ] || { [ "${_kmaj:-0}" -eq 6 ] && [ "${_kmin:-0}" -ge 15 ]; }; then
+        warn ""
+        warn "KNOWN ISSUE on kernel $(uname -r):"
+        warn "  patjak/facetimehd has an upstream regression on kernels 6.15+."
+        warn "  Cheese, GNOME Snapshot, and other GStreamer/PipeWire apps will"
+        warn "  capture one frame then freeze. See:"
+        warn "    https://github.com/patjak/facetimehd/issues/315"
+        warn "  Workaround: use a browser-based camera app instead."
+        warn "  Tested working: https://webcamtests.com, Zoom web, Google Meet."
+        warn ""
+    fi
 
     # Secure Boot blocks unsigned kmod modules at load time with no visible
     # error in user-facing apps. Detect early and abort cleanly.

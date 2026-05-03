@@ -15,8 +15,11 @@ A `brew.sh`-inspired one-liner post-install script for Linux running on Apple Ma
 3. Presents an interactive checklist (whiptail) of "universally-agreed must-haves" — user picks before install
 4. Re-execs under `sudo`, runs the install, reports what needs a reboot
 
-**MVP target**: MacBook Air 2017 (`MacBookAir7,2`) + Fedora Workstation 44.
-**Future**: multi-device + multi-distro (Ubuntu, Pop!\_OS, Debian) via the `targets/` registry pattern.
+**Currently supported**:
+- MacBook Air 2017 (`MacBookAir7,2`) + Fedora Workstation 44 (kernel 6.19)
+- MacBook Air 2017 (`MacBookAir7,2`) + Debian 13 / Trixie (kernel 6.12 LTS)
+
+**Next**: Ubuntu 24.04 LTS (kernel 6.8). Then more devices (other MBA/MBP models).
 
 ---
 
@@ -48,9 +51,12 @@ mac-linux-postinstall/
 │   ├── ui.sh                      # whiptail wrappers (checklist, msgbox, yesno)
 │   └── detect.sh                  # device + distro → target id resolution
 ├── targets/
-│   └── macbookair7_2-fedora44/
-│       ├── essentials.sh          # Critical, auto-install (no opt-out)
-│       └── extras.sh              # Optional, presented via whiptail checklist
+│   ├── macbookair7_2-fedora44/    # MBA7,2 + Fedora 44 (kernel 6.19)
+│   │   ├── essentials.sh          # Critical, auto-install (no opt-out)
+│   │   └── extras.sh              # Optional, presented via whiptail checklist
+│   └── macbookair7_2-debian13/    # MBA7,2 + Debian 13 (kernel 6.12 LTS)
+│       ├── essentials.sh
+│       └── extras.sh
 ├── tests/
 │   └── qa.sh                      # Automated unit tests (bash, no hardware needed)
 ├── README.md                      # User-facing only
@@ -99,6 +105,8 @@ Format: `<device-slug>-<distro><major-version>` — lowercase, underscore for pr
 
 Examples:
 - `macbookair7_2-fedora44`  (`MacBookAir7,2` → `macbookair7_2`)
+- `macbookair7_2-debian13`
+- `macbookair7_2-ubuntu2404` (planned)
 - `macbookpro11_3-ubuntu2404` (future)
 - `macbookair7_2-popos2204` (future)
 
@@ -127,10 +135,24 @@ Detection logic in `lib/detect.sh` maps `(DMI product, distro id, distro version
 5. **GitHub Pages doesn't follow symlinks**: `docs/install.sh` must be a real file, not a symlink to `bootstrap.sh`. That's why bootstrap lives only in `docs/`.
 6. **`/sys/class/dmi/id/product_name`** is readable without sudo on Linux — use it instead of `dmidecode` for pre-escalation device detection. Fall back to `dmidecode` only if the sys file is missing.
 7. **Akmod build for Broadcom WiFi**: the `akmods --force` step can spuriously report errors but the module usually still builds on next boot. Treat its non-zero exit as a warning, not failure.
-8. **FaceTime HD camera**: fragile, always default to OFF in the checklist. Uses the **`mulderje/facetimehd-kmod`** COPR — NOT `mulderje/facetimehd-dkms` (that COPR does not exist; we wasted a real-hardware test discovering this). The kmod variant ships pre-built modules per kernel version, so DO NOT add DKMS-build logic. Other gotchas: (a) firmware blob at `/usr/lib/firmware/facetimehd/firmware.bin` is downloaded from Apple's CDN by the firmware package's `%post` scriptlet — silently fails on network errors, so we verify and offer the manual extract path; (b) Secure Boot blocks unsigned kmod modules with no visible error — we pre-check via `mokutil` and abort cleanly if SB is on; (c) `/etc/modules-load.d/facetimehd.conf` is written so the module persists across reboots; (d) **never** redirect stderr from `dnf copr enable` — silent failure (e.g. wrong COPR name) is exactly how we shipped the broken first version. Reference: https://copr.fedorainfracloud.org/coprs/mulderje/facetimehd-kmod/
+8. **FaceTime HD camera** — read this whole entry before touching the camera install path. Multiple compounding gotchas, several discovered the hard way on real hardware:
+   - **COPR name**: use `mulderje/facetimehd-kmod`, NOT `mulderje/facetimehd-dkms`. The `-dkms` COPR does not exist (we wasted a real-hardware test discovering this). The `-kmod` variant ships pre-built modules per kernel version, so DO NOT add DKMS-build logic.
+   - **Upstream kernel regression on 6.15+** ([patjak/facetimehd#315](https://github.com/patjak/facetimehd/issues/315)): module loads, captures one frame, then the GStreamer/PipeWire pipeline cannot continue. Cheese, GNOME Snapshot, and other GStreamer-based apps freeze on the first frame. Confirmed by multiple users on Arch/Fedora/Ubuntu kernels 6.15 through 6.19+. **No upstream fix as of May 2026.**
+   - **Browser-based apps work**: WebRTC capture (Zoom web, Google Meet, Discord web, https://webcamtests.com) bypasses GStreamer and streams live correctly even on affected kernels. We still install the module on 6.15+ kernels — browser apps remain functional, and the upstream may eventually patch this.
+   - **Older-kernel distros are unaffected**: Debian 13 (kernel 6.12 LTS) and Ubuntu 24.04 LTS (kernel 6.8) sit *before* the regression window, so the camera streams normally in all apps there.
+   - **Firmware blob** at `/usr/lib/firmware/facetimehd/firmware.bin` is downloaded from Apple's CDN by the `facetimehd-firmware` package's `%post` scriptlet — silently fails on network errors. We verify after install and offer the manual extract path.
+   - **Sensor calibration files** (`1871_01XX.dat` for MBA 2017, `1771_01XX.dat` for older models) only affect color correction — NOT the freeze. The "Direct firmware load … failed -2" message in dmesg is a red herring for the freeze symptom.
+   - **Secure Boot** blocks unsigned kmod modules with no visible error in user-facing apps — we pre-check via `mokutil` and abort cleanly if SB is on.
+   - **`/etc/modules-load.d/facetimehd.conf`** must be written so the module persists across reboots.
+   - **Never redirect stderr from `dnf copr enable`** — silent failure (e.g. wrong COPR name) is exactly how we shipped the broken first version.
+   - References: https://copr.fedorainfracloud.org/coprs/mulderje/facetimehd-kmod/ • https://github.com/patjak/facetimehd/issues/315 • https://github.com/patjak/facetimehd/wiki/Get-Started
 9. **`power-profiles-daemon` / `tuned-ppd` vs TLP**: they conflict at the **package level** on Fedora 44. `tuned-ppd` ships dbus files that TLP also owns — `dnf install tlp` will fail with an RPM file-conflict error before writing anything. Fix: stop/disable `tuned-ppd.service`, `dnf remove -y tuned-ppd`, mask `power-profiles-daemon.service`, *then* `dnf install tlp tlp-rdw`. Masking the service alone is not enough.
 10. **Tarball extraction path**: GitHub's tarball top-level dir is `<repo>-<branch>/`. Use `tar xz --strip-components=1` to flatten.
 11. **Unsupported targets must exit before sudo**: full detection currently requires downloading and sourcing the repo first, but `sudo -v` must stay after target resolution so unsupported machines are never asked for elevated privileges.
+12. **Debian apt sources format split**: Debian 13 fresh installs use the new deb822 format at `/etc/apt/sources.list.d/debian.sources`; older systems still use the legacy single-line `/etc/apt/sources.list`. Use `add-apt-repository -c <component>` (from `software-properties-common`) to add components — it handles both formats transparently. Don't `sed` the file directly: you'll only edit one of the two formats and silently miss the other.
+13. **Initramfs regen command differs**: Fedora uses `dracut --force`; Debian/Ubuntu use `update-initramfs -u`. The `hid_apple` fnmode change must be followed by a regen, so each target's `essentials.sh` calls the right one. Don't unify these — the binaries are not interchangeable.
+14. **Conflicting Broadcom kernel modules on Debian**: `broadcom-sta-dkms` builds the proprietary `wl` module, but several open-source variants (`brcmfmac`, `brcmsmac`, `b43`, `b43legacy`, `bcma`, `ssb`) often grab the device first. After installing `broadcom-sta-dkms`, modprobe-remove all of them before loading `wl`. The Debian target's essentials.sh does this in a loop.
+15. **Debian `gnome-extensions-app` is named `gnome-shell-extension-manager`**: trivially different package name from Fedora. Do not assume cross-distro name parity for any GNOME-shell-related packages — always check both repos when adding a new target.
 
 ---
 
@@ -163,6 +185,7 @@ For unsupported targets, also verify the friendly error path:
 
 ## 8. Workflow expectations
 
+- **Ask before every commit and every push.** Do NOT commit or push to `origin/main` without explicit user approval **for that specific change**. One previous "yes" does not authorize the next commit — momentum is not consent. This applies even when the change is small, obviously correct, or feels like an inevitable follow-on. Show the diff or summarize the change, ask, wait. Same rule for closing PRs and deleting branches.
 - **Pinned to `main`**: there are no version tags yet. The landing page URL fetches `main`. When we cut releases, switch the bootstrap's tarball URL to the tag.
 - **CHANGELOG.md is mandatory**: every PR/commit that changes behavior must add a `## [Unreleased]` entry. We use Keep-a-Changelog format. This is what stops us running in circles.
 - **Document issues + fixes in the changelog, not just features**: if you debug something for an hour, the lesson goes in CHANGELOG under `### Fixed` with enough detail that the next agent doesn't repeat the dig.

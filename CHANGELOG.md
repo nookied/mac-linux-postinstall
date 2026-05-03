@@ -10,6 +10,13 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Added
 
+- **Debian 13 (Trixie) target** — `targets/macbookair7_2-debian13/` with full `essentials.sh` and `extras.sh`. MBA 2017 owners on Debian 13 get the same one-liner UX as Fedora users.
+  - **Detection**: `lib/detect.sh::resolve_target` adds the `macbookair7_2-debian-13` case mapping to target id `macbookair7_2-debian13`.
+  - **Essentials (auto-installed)**: enables `non-free-firmware` + `contrib` apt components via `add-apt-repository -c` (handles both deb822 and legacy `sources.list` formats); installs `build-essential`, `dkms`, kernel headers; installs `broadcom-sta-dkms` for WiFi (with explicit modprobe-remove of conflicting `brcmfmac`/`brcmsmac`/`b43`/`b43legacy`/`bcma`/`ssb`); installs full GStreamer plugin set + ffmpeg for codecs; configures `hid_apple fnmode=2` and regenerates initramfs via `update-initramfs -u`.
+  - **Extras (interactive)**: same six options as Fedora — TLP, mbpfan, Flathub, dev tools, GNOME Tweaks + Extension Manager, FaceTime HD camera. Package names adapted: `gnome-shell-extension-manager` (not Fedora's `gnome-extensions-app`); flatpak isn't preinstalled so we apt-install it inside the Flathub step.
+  - **FaceTime HD on Debian**: no COPR equivalent, so we build from source. Clones `patjak/facetimehd-firmware` (extracts firmware via Apple CDN), then `patjak/facetimehd` to `/usr/src/facetimehd-VERSION` and installs via DKMS. Same kernel-regression awareness as the Fedora target — warns on kernels ≥ 6.15. Debian 13's default 6.12 LTS sits *before* the regression window, so the camera should actually stream live in Cheese/GNOME Snapshot — making this the better target if a working camera matters.
+  - **Tests**: `tests/qa.sh` extended with a mocked-detection test verifying `(macbookair7_2, debian, 13)` resolves to the new target id.
+  - **Docs**: README support matrix and [docs/index.html](docs/index.html) terminal-style matrix updated with the new row including kernel version. CLAUDE.md file map and target naming examples updated. Four new gotchas (#12–15) added covering apt sources format split, initramfs-regen command differences, Broadcom open-source-driver conflicts, and the GNOME extension manager package name divergence.
 - **GitHub Actions CI** (`.github/workflows/qa.yml`) — runs `tests/qa.sh` on every push to `main`, every PR targeting `main`, and on manual dispatch. Uses `ubuntu-latest` (shellcheck preinstalled, bash 5+). Status badge in README. The Linux runner means the `detect_distro` test (which skips on macOS dev hosts) actually runs there against Ubuntu's `/etc/os-release`.
 - **`.gitignore`** — covers `.DS_Store` (macOS Finder metadata that got accidentally committed in `d3612f1` and was later untracked), editor scratch files (`.vscode/`, `.idea/`, vim swap), and common temp patterns.
 - **`tests/qa.sh`** — automated unit test suite (no hardware required). Covers bash syntax checks, `lib/common.sh` reboot tracking, `lib/detect.sh` slug conversion and target resolution, `lib/ui.sh` checklist fallback, `extras.sh` manifest integrity, and bootstrap structural invariants. Run with `bash tests/qa.sh`.
@@ -55,6 +62,20 @@ All notable changes to this project are documented here. Format follows [Keep a 
   2. **Silent failure pattern**: `dnf copr enable -y mulderje/facetimehd-dkms 2>/dev/null` swallowed the "project does not exist" error and `||` returned the function with `return 0` — the user saw a "skipping" warning at most, but nothing actionable. Removed the stderr redirect on copr-enable so failures are diagnosable.
   3. **Wrong packaging assumption**: the rest of the function assumed DKMS (calling `dkms autoinstall`, checking `dkms status`). The kmod COPR ships **pre-built kmod packages per kernel version** — no DKMS step needed and `dkms` isn't even installed by default. Removed all DKMS logic; install now is just `dnf install facetimehd-firmware facetimehd-kmod`.
   Fixed package list, COPR name, and removed dead DKMS code. Kept Secure Boot pre-check (still relevant — kmod modules are also unsigned). Updated CLAUDE.md gotcha #8 with full context so this doesn't repeat.
+
+### Documentation
+
+- **FaceTime HD upstream regression on kernels 6.15+** ([patjak/facetimehd#315](https://github.com/patjak/facetimehd/issues/315)): real-hardware test surfaced this. After fixing the COPR-name bug, the module loaded cleanly, firmware loaded (1.4MB), interrupts enabled, and `v4l2-ctl` listed YUYV/YVYU formats at 1280x720@30. But Cheese AND GNOME Snapshot both captured one frame ("freezeframe of my face") then froze. Diagnosis path:
+  1. Initially suspected the missing sensor calibration file `1871_01XX.dat` (dmesg showed "Direct firmware load … failed -2"), but patjak's wiki clarifies sensor cal files only affect *color correction*, not streaming.
+  2. Searched the `patjak/facetimehd` issue tracker — found open issue #315 "Frozen image on kernels 6.15, 6.16, 6.17, 6.18..." with multiple users on Arch/Fedora/Ubuntu reporting identical "captures 1-2 frames then freezes" symptom.
+  3. Crucial workaround in the issue thread: **browser-based WebRTC capture works** (Zoom web client, Google Meet, Discord web, https://webcamtests.com). Browsers talk v4l2 directly, bypassing the GStreamer/PipeWire pipeline that the regression breaks.
+  4. No upstream fix as of May 2026.
+  Resolution in our project:
+  - `install_facetimehd` now detects kernel ≥ 6.15 (via `uname -r` major.minor parse) and prints a clear warning during install: "module loads fine but Cheese/Snapshot will freeze; use a browser-based camera app instead."
+  - We still install the module — browser apps remain functional, and we want to be ready when upstream patches land.
+  - CLAUDE.md gotcha #8 expanded with full failure modes, the regression details, browser workaround, the misleading sensor-cal red herring, and links to the issue + COPR + wiki.
+  - README + landing page updated with a "Known issues" callout so users aren't surprised.
+  - Older-kernel distros (Debian 13 → 6.12, Ubuntu 24.04 → 6.8) sit before the regression window — recorded so we don't repeat the kernel-version check pointlessly when those targets are added.
 
 ### Removed
 
