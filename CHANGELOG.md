@@ -28,6 +28,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Fixed
 
+- **Whiptail checklist double-box visual artifact** (`docs/install.sh`, `lib/ui.sh`): the checklist dialog appeared to render two overlapping dialog boxes because previous terminal output (dnf progress, log messages) remained on screen when whiptail drew its dialog. Fixed by calling `clear` immediately before the `tui_checklist` call so whiptail renders onto a clean terminal. Also capped `list_height` at the actual item count (previously `height - 8` could exceed the number of items on a large terminal, causing whiptail to allocate more list rows than items, which shifts the dialog geometry and can produce rendering glitches on some terminal sizes).
+
 - **Unsupported target flow**: `docs/install.sh` now downloads the repo and runs full target detection before `sudo -v`, so unsupported machines exit with the friendly message before any privilege prompt.
 - **mbpfan source fallback**: when Fedora does not provide `mbpfan`, the source build now clones the maintained `linux-on-mac/mbpfan` repo, installs the systemd unit explicitly, and warns instead of aborting the whole run if the optional fallback fails.
 - **TLP service conflict handling**: TLP setup now stops/disables and masks `power-profiles-daemon.service` before enabling `tlp.service`, preventing the conflicting daemon from continuing in the current boot.

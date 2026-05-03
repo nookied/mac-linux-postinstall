@@ -105,12 +105,17 @@ tui_checklist() {
     done
     if has_cmd whiptail; then
         # Fit the dialog to the actual terminal; cap at comfortable maximums.
-        local cols rows width height list_height
+        local cols rows width height list_height num_items
         cols=$(tput cols 2>/dev/null || echo 80)
         rows=$(tput lines 2>/dev/null || echo 24)
         width=$(( cols - 4 ));  [ "$width" -gt 76 ] && width=76
         height=$(( rows - 4 )); [ "$height" -gt 20 ] && height=20
-        list_height=$(( height - 8 )); [ "$list_height" -lt 3 ] && list_height=3
+        num_items=$(( ${#items[@]} / 3 ))
+        list_height=$(( height - 8 ))
+        # Cap at actual item count — prevents the dialog being taller than needed,
+        # which causes whiptail to overflow/render incorrectly on small terminals.
+        [ "$list_height" -gt "$num_items" ] && list_height=$num_items
+        [ "$list_height" -lt 3 ] && list_height=3
 
         # whiptail writes the selection to stderr (because stdout is for the UI),
         # so redirect 3>&1 1>&2 2>&3 to swap them.
