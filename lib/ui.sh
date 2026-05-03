@@ -104,10 +104,18 @@ tui_checklist() {
         shift 3
     done
     if has_cmd whiptail; then
+        # Fit the dialog to the actual terminal; cap at comfortable maximums.
+        local cols rows width height list_height
+        cols=$(tput cols 2>/dev/null || echo 80)
+        rows=$(tput lines 2>/dev/null || echo 24)
+        width=$(( cols - 4 ));  [ "$width" -gt 76 ] && width=76
+        height=$(( rows - 4 )); [ "$height" -gt 20 ] && height=20
+        list_height=$(( height - 8 )); [ "$list_height" -lt 3 ] && list_height=3
+
         # whiptail writes the selection to stderr (because stdout is for the UI),
         # so redirect 3>&1 1>&2 2>&3 to swap them.
         whiptail --title "$title" --checklist --separate-output \
-            "$body" 20 76 12 "${items[@]}" 3>&1 1>&2 2>&3
+            "$body" "$height" "$width" "$list_height" "${items[@]}" 3>&1 1>&2 2>&3
     else
         # Fallback: ask each item individually
         warn "whiptail not available, falling back to plain prompts"
