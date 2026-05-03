@@ -125,18 +125,18 @@ case "${reply,,}" in
 esac
 
 # ---------------- 4. Download the repo tarball ------------------------------
-TMPDIR=$(mktemp -d -t maclin.XXXXXX)
+MACLIN_TMPDIR=$(mktemp -d -t maclin.XXXXXX)
 SUDO_KEEPALIVE_PID=""
 cleanup() {
     if [ -n "${SUDO_KEEPALIVE_PID:-}" ]; then
         kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
     fi
-    rm -rf "$TMPDIR"
+    rm -rf "$MACLIN_TMPDIR"
 }
 trap cleanup EXIT
 
 log "Downloading repo tarball…"
-TARBALL="$TMPDIR/repo.tar.gz"
+TARBALL="$MACLIN_TMPDIR/repo.tar.gz"
 if [ "$FETCHER" = "curl" ]; then
     curl -fsSL "$TARBALL_URL" -o "$TARBALL" \
         || die "Failed to download $TARBALL_URL"
@@ -145,7 +145,7 @@ else
         || die "Failed to download $TARBALL_URL"
 fi
 
-REPO_DIR="$TMPDIR/repo"
+REPO_DIR="$MACLIN_TMPDIR/repo"
 mkdir -p "$REPO_DIR"
 # --strip-components=1 flattens the GitHub-prefixed top-level dir
 # (mac-linux-postinstall-main/) so paths look like repo/lib/common.sh
@@ -216,7 +216,7 @@ SELECTED=$(tui_checklist "Optional extras for $TARGET" \
     "${CHECKLIST_ARGS[@]}") || die "Aborted at extras selection." 0
 
 # ---------------- 9. Write selections to env file ---------------------------
-SELECTIONS_FILE="$TMPDIR/selections.env"
+SELECTIONS_FILE="$MACLIN_TMPDIR/selections.env"
 : > "$SELECTIONS_FILE"
 for key in $SELECTED; do
     # Convert key to uppercase for env var name. SELECTED_TLP=true etc.
@@ -229,10 +229,10 @@ done
 # fragile around quoting and signal handling. Writing a tiny runner script
 # and sudo-execing it is robust.
 
-REBOOT_FILE="$TMPDIR/reboot.reasons"
+REBOOT_FILE="$MACLIN_TMPDIR/reboot.reasons"
 : > "$REBOOT_FILE"
 
-RUNNER="$TMPDIR/run-install.sh"
+RUNNER="$MACLIN_TMPDIR/run-install.sh"
 cat > "$RUNNER" <<RUNNER_EOF
 #!/usr/bin/env bash
 set -euo pipefail

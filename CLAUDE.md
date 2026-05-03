@@ -51,6 +51,8 @@ mac-linux-postinstall/
 │   └── macbookair7_2-fedora44/
 │       ├── essentials.sh          # Critical, auto-install (no opt-out)
 │       └── extras.sh              # Optional, presented via whiptail checklist
+├── tests/
+│   └── qa.sh                      # Automated unit tests (bash, no hardware needed)
 ├── README.md                      # User-facing only
 ├── AGENTS.md                      # Pointer to this file
 ├── CLAUDE.md                      # ← you are here
@@ -125,7 +127,7 @@ Detection logic in `lib/detect.sh` maps `(DMI product, distro id, distro version
 5. **GitHub Pages doesn't follow symlinks**: `docs/install.sh` must be a real file, not a symlink to `bootstrap.sh`. That's why bootstrap lives only in `docs/`.
 6. **`/sys/class/dmi/id/product_name`** is readable without sudo on Linux — use it instead of `dmidecode` for pre-escalation device detection. Fall back to `dmidecode` only if the sys file is missing.
 7. **Akmod build for Broadcom WiFi**: the `akmods --force` step can spuriously report errors but the module usually still builds on next boot. Treat its non-zero exit as a warning, not failure.
-8. **FaceTime HD camera**: fragile, always default to OFF in the checklist. Document upstream wiki link in `extras.sh`.
+8. **FaceTime HD camera**: fragile, always default to OFF in the checklist. Three specific gaps were fixed: (a) `dkms autoinstall` is now called after install so the module builds for the running kernel; (b) firmware presence at `/usr/lib/firmware/facetimehd/firmware.bin` is verified after install because the `%post` scriptlet downloads from Apple CDN and silently fails on network errors; (c) `/etc/modules-load.d/facetimehd.conf` is written so the module persists across reboots. Still defaults OFF — COPR availability varies per Fedora release and the hardware support remains fragile overall.
 9. **`power-profiles-daemon` / `tuned-ppd` vs TLP**: they conflict at the **package level** on Fedora 44. `tuned-ppd` ships dbus files that TLP also owns — `dnf install tlp` will fail with an RPM file-conflict error before writing anything. Fix: stop/disable `tuned-ppd.service`, `dnf remove -y tuned-ppd`, mask `power-profiles-daemon.service`, *then* `dnf install tlp tlp-rdw`. Masking the service alone is not enough.
 10. **Tarball extraction path**: GitHub's tarball top-level dir is `<repo>-<branch>/`. Use `tar xz --strip-components=1` to flatten.
 11. **Unsupported targets must exit before sudo**: full detection currently requires downloading and sourcing the repo first, but `sudo -v` must stay after target resolution so unsupported machines are never asked for elevated privileges.
@@ -134,7 +136,12 @@ Detection logic in `lib/detect.sh` maps `(DMI product, distro id, distro version
 
 ## 7. Testing checklist (manual — no CI yet)
 
-Before tagging a release, on a clean MBA7,2 + Fedora 44 install:
+Run automated unit tests first (no hardware needed):
+```bash
+bash tests/qa.sh
+```
+
+Then, on a clean MBA7,2 + Fedora 44 install:
 
 - [ ] One-liner downloads and runs without error
 - [ ] Detection correctly identifies `macbookair7_2-fedora44`
@@ -144,6 +151,9 @@ Before tagging a release, on a clean MBA7,2 + Fedora 44 install:
 - [ ] After reboot: `sensors` shows fan RPM
 - [ ] Brightness/volume keys work without `Fn`
 - [ ] Re-running the script is idempotent (no duplicate Flathub remote, no re-clone, etc.)
+- [ ] (if FaceTime HD selected) `/usr/lib/firmware/facetimehd/firmware.bin` exists after install
+- [ ] (if FaceTime HD selected) `cat /etc/modules-load.d/facetimehd.conf` shows `facetimehd`
+- [ ] (if TLP selected) `systemctl status tlp` shows active + running; `power-profiles-daemon` is masked
 
 For unsupported targets, also verify the friendly error path:
 - [ ] Run on non-Apple Linux box → clean abort with the right message

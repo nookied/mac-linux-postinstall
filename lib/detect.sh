@@ -44,16 +44,15 @@ detect_device() {
 # Parse /etc/os-release. This is a freedesktop standard and present on
 # every modern Linux distro we care about.
 detect_distro() {
-    DISTRO_ID=""; DISTRO_VERSION=""; DISTRO_LIKE=""
+    DISTRO_ID="unknown"; DISTRO_VERSION="unknown"; DISTRO_LIKE=""
     if [ -r /etc/os-release ]; then
+        # Parse in a subshell so the many NAME/PRETTY_NAME/etc. variables from
+        # os-release don't pollute the bootstrap's global scope.
+        local _parsed
         # shellcheck disable=SC1091
-        . /etc/os-release
-        DISTRO_ID="${ID:-unknown}"
-        DISTRO_VERSION="${VERSION_ID:-unknown}"
-        DISTRO_LIKE="${ID_LIKE:-}"
-    else
-        DISTRO_ID="unknown"
-        DISTRO_VERSION="unknown"
+        _parsed=$(. /etc/os-release && printf '%s\t%s\t%s' \
+            "${ID:-unknown}" "${VERSION_ID:-unknown}" "${ID_LIKE:-}")
+        IFS=$'\t' read -r DISTRO_ID DISTRO_VERSION DISTRO_LIKE <<< "$_parsed"
     fi
     export DISTRO_ID DISTRO_VERSION DISTRO_LIKE
 }

@@ -10,6 +10,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Added
 
+- **`tests/qa.sh`** — automated unit test suite (no hardware required). Covers bash syntax checks, `lib/common.sh` reboot tracking, `lib/detect.sh` slug conversion and target resolution, `lib/ui.sh` checklist fallback, `extras.sh` manifest integrity, and bootstrap structural invariants. Run with `bash tests/qa.sh`.
 - **Project scaffolding** — converted single-script repo into a multi-target framework.
   - `docs/install.sh` — the bootstrap (entry point users `curl`/`wget`).
   - `lib/common.sh`, `lib/pkg.sh`, `lib/ui.sh`, `lib/detect.sh` — shared helpers, sourced by bootstrap after tarball download.
@@ -28,14 +29,18 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Fixed
 
+- **`TMPDIR` env collision** (`docs/install.sh`): bootstrap used `TMPDIR` as its working temp dir, which shadows the standard `$TMPDIR` environment variable and would cause any subsequent `mktemp` calls (in the current process or child processes that inherit the variable) to create files inside the bootstrap's own tmpdir. Renamed to `MACLIN_TMPDIR` throughout `docs/install.sh`.
+- **`dnf check-update -y` spurious flag** (`lib/pkg.sh`): `pkg_refresh` passed `-y` to `dnf check-update`, which is a read-only query that has no interactive prompts and silently ignores `-y`. Removed the flag.
+- **`os-release` global scope pollution** (`lib/detect.sh`): `detect_distro` sourced `/etc/os-release` directly, which exported `NAME`, `PRETTY_NAME`, `HOME_URL`, `SUPPORT_URL`, and many other variables into the bootstrap's global shell scope. Fixed by sourcing in a subshell and extracting only the three fields we need (`ID`, `VERSION_ID`, `ID_LIKE`) via `printf` + `read`.
+- **`list_height` minimum could exceed item count** (`lib/ui.sh`): `tui_checklist` enforced a minimum `list_height` of 3 unconditionally, which would exceed the actual item count for manifests with fewer than 3 items and cause whiptail rendering glitches. Fixed to only apply the minimum-3 guard when there are at least 3 items.
 - **Whiptail checklist double-box visual artifact** (`docs/install.sh`, `lib/ui.sh`): the checklist dialog appeared to render two overlapping dialog boxes because previous terminal output (dnf progress, log messages) remained on screen when whiptail drew its dialog. Fixed by calling `clear` immediately before the `tui_checklist` call so whiptail renders onto a clean terminal. Also capped `list_height` at the actual item count (previously `height - 8` could exceed the number of items on a large terminal, causing whiptail to allocate more list rows than items, which shifts the dialog geometry and can produce rendering glitches on some terminal sizes).
-
 - **Unsupported target flow**: `docs/install.sh` now downloads the repo and runs full target detection before `sudo -v`, so unsupported machines exit with the friendly message before any privilege prompt.
 - **mbpfan source fallback**: when Fedora does not provide `mbpfan`, the source build now clones the maintained `linux-on-mac/mbpfan` repo, installs the systemd unit explicitly, and warns instead of aborting the whole run if the optional fallback fails.
 - **TLP service conflict handling**: TLP setup now stops/disables and masks `power-profiles-daemon.service` before enabling `tlp.service`, preventing the conflicting daemon from continuing in the current boot.
 - **TLP install failure on Fedora 44 (`tuned-ppd` conflict)**: on Fedora 44, `tuned-ppd` (the `tuned`-backed replacement for `power-profiles-daemon`) ships dbus service files that TLP also owns — DNF refuses the install with a file-conflict error before any package is written. Fixed by stopping/disabling `tuned-ppd.service` and removing the `tuned-ppd` package **before** calling `dnf install tlp tlp-rdw`. Also mask `power-profiles-daemon.service` so neither backend can restart. Root cause: earlier fix only masked the service unit; it did not remove the conflicting package, so the RPM transaction still failed.
 - **hid_apple config preservation**: function-key setup now updates or appends only the `fnmode=2` option instead of overwriting the whole `/etc/modprobe.d/hid_apple.conf` file.
 - **GitHub username**: initial scaffolding hardcoded `karolnowacki` (inferred from the local macOS user dir `/Users/karolnowacki/`). Real GitHub handle is `nookied`. Replaced across `docs/install.sh` (GH_USER + URL comments), `docs/index.html` (install commands + footer links), `README.md` (install commands + issue link), and `CLAUDE.md` (architecture notes). Lesson for future agents: never infer a GitHub username from `$HOME` — always ask.
+- **FaceTime HD camera not working after install** (`install_facetimehd`): three compounding problems. (1) `dkms autoinstall` was never called after installing `facetimehd-dkms`, so the kernel module was not built for the running kernel — only for the next boot if DKMS ran automatically. (2) The `facetimehd-firmware` RPM's `%post` scriptlet downloads the firmware binary from Apple's CDN; if that network request fails the firmware is silently missing and the camera shows "No Camera Found" even if the module loads. Fixed by checking `/usr/lib/firmware/facetimehd/firmware.bin` after install and looking for any packaged re-download helper, then warning explicitly with the manual URL if firmware is still absent. (3) There was no `/etc/modules-load.d/facetimehd.conf` entry, so even a successfully loaded module would not persist across reboots. All three gaps now addressed.
 
 ### Removed
 
@@ -48,8 +53,6 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - **Whiptail vs plain prompts**: whiptail chosen. Available across Fedora (`newt` package), Debian, Ubuntu, Pop!_OS (`whiptail` package). Bootstrap installs the right package before showing the menu, so we don't depend on it being preinstalled.
 - **Curl vs wget on landing page**: ship both one-liners. Some Debian-family minimal installs lack curl; some have only wget. Modern Fedora Workstation has curl by default.
 - **Memory system**: project-specific knowledge goes in CLAUDE.md, not in any agent's local memory. Confirmed with user.
-
-- **FaceTime HD camera not working after install (`install_facetimehd`)**: three compounding problems. (1) `dkms autoinstall` was never called after installing `facetimehd-dkms`, so the kernel module was not built for the running kernel — only for the next boot if DKMS ran automatically. (2) The `facetimehd-firmware` RPM's `%post` scriptlet downloads the firmware binary from Apple's CDN; if that network request fails the firmware is silently missing and the camera shows "No Camera Found" even if the module loads. Fixed by checking `/usr/lib/firmware/facetimehd/firmware.bin` after install and looking for any packaged re-download helper, then warning explicitly with the manual URL if firmware is still absent. (3) There was no `/etc/modules-load.d/facetimehd.conf` entry, so even a successfully loaded module would not persist across reboots. All three gaps now addressed.
 
 ### Known issues / to verify on real hardware
 

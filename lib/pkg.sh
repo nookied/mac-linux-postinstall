@@ -58,7 +58,7 @@ pkg_refresh() {
     [ -n "${PKG_MANAGER:-}" ] || detect_pkg_manager
     case "$PKG_MANAGER" in
         dnf)
-            dnf check-update -y >/dev/null 2>&1 || true  # exits 100 when updates exist
+            dnf check-update >/dev/null 2>&1 || true  # exits 100 when updates exist
             ;;
         apt)
             DEBIAN_FRONTEND=noninteractive apt-get update -y
