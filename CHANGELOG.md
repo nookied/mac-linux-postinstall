@@ -49,6 +49,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - **Curl vs wget on landing page**: ship both one-liners. Some Debian-family minimal installs lack curl; some have only wget. Modern Fedora Workstation has curl by default.
 - **Memory system**: project-specific knowledge goes in CLAUDE.md, not in any agent's local memory. Confirmed with user.
 
+- **FaceTime HD camera not working after install (`install_facetimehd`)**: three compounding problems. (1) `dkms autoinstall` was never called after installing `facetimehd-dkms`, so the kernel module was not built for the running kernel — only for the next boot if DKMS ran automatically. (2) The `facetimehd-firmware` RPM's `%post` scriptlet downloads the firmware binary from Apple's CDN; if that network request fails the firmware is silently missing and the camera shows "No Camera Found" even if the module loads. Fixed by checking `/usr/lib/firmware/facetimehd/firmware.bin` after install and looking for any packaged re-download helper, then warning explicitly with the manual URL if firmware is still absent. (3) There was no `/etc/modules-load.d/facetimehd.conf` entry, so even a successfully loaded module would not persist across reboots. All three gaps now addressed.
+
 ### Known issues / to verify on real hardware
 
 - End-to-end run on a clean MBA7,2 + Fedora 44 install has not yet happened. Manual test checklist lives in CLAUDE.md §7.

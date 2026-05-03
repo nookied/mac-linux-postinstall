@@ -95,13 +95,46 @@ install_gnome_tweaks() {
 # ---------------- 6. FaceTime HD camera (fragile, off by default) -----------
 install_facetimehd() {
     log "Installing FaceTime HD camera driver…"
-    warn "FaceTime HD setup is the most fragile part of this script."
-    warn "If it fails, manual route: https://github.com/patjak/facetimehd/wiki/Get-Started"
-    if dnf copr enable -y mulderje/facetimehd-dkms 2>/dev/null; then
-        dnf install -y facetimehd-firmware facetimehd-dkms || warn "Camera package install failed"
-        modprobe facetimehd 2>/dev/null || warn "facetimehd module didn't load — try after reboot"
-        mark_reboot "FaceTime HD camera (kernel module)"
-    else
-        warn "COPR not available for this Fedora version — skipping FaceTime HD"
+    warn "FaceTime HD setup is fragile. Manual route: https://github.com/patjak/facetimehd/wiki/Get-Started"
+
+    if ! dnf copr enable -y mulderje/facetimehd-dkms 2>/dev/null; then
+        warn "COPR not available for Fedora $(rpm -E %fedora) — skipping FaceTime HD"
+        return 0
     fi
+
+    if ! dnf install -y facetimehd-firmware facetimehd-dkms; then
+        warn "Camera package install failed — skipping FaceTime HD"
+        return 0
+    fi
+
+    # Build the DKMS module for the running kernel right now, not just on next boot.
+    dkms autoinstall 2>/dev/null || warn "DKMS autoinstall had errors — module may still build on next boot"
+
+    # The facetimehd-firmware %post scriptlet downloads firmware from Apple CDN.
+    # It silently fails if the network request fails. Verify and warn explicitly.
+    local fw_path="/usr/lib/firmware/facetimehd/firmware.bin"
+    if [ ! -f "$fw_path" ]; then
+        # The package may ship a helper script to re-run the firmware download.
+        local fw_script
+        fw_script=$(find /usr/lib/facetimehd /usr/share/facetimehd /usr/sbin \
+                         -maxdepth 1 -name "*firmware*" -executable 2>/dev/null | head -1)
+        if [ -n "$fw_script" ]; then
+            log "Re-running firmware download script: $fw_script"
+            "$fw_script" 2>/dev/null || true
+        fi
+    fi
+
+    if [ -f "$fw_path" ]; then
+        ok "FaceTime HD firmware present at $fw_path"
+    else
+        warn "Firmware not found at $fw_path — camera will not work."
+        warn "After reboot, run the firmware helper manually or follow:"
+        warn "  https://github.com/patjak/facetimehd/wiki/Get-Started#firmware"
+    fi
+
+    # Ensure the module loads on every boot, not just the current session.
+    echo "facetimehd" > /etc/modules-load.d/facetimehd.conf
+
+    modprobe facetimehd 2>/dev/null || warn "facetimehd module not loadable yet — should work after reboot"
+    mark_reboot "FaceTime HD camera (kernel module + firmware)"
 }
