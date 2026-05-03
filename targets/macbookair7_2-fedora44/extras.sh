@@ -93,38 +93,42 @@ install_gnome_tweaks() {
 }
 
 # ---------------- 6. FaceTime HD camera (fragile, off by default) -----------
+# Uses the `mulderje/facetimehd-kmod` COPR (NOT facetimehd-dkms — that COPR
+# does not exist; the correct one ships kmod-style pre-built modules per
+# kernel version). Verified Fedora 44 builds: see
+#   https://copr.fedorainfracloud.org/coprs/mulderje/facetimehd-kmod/
 install_facetimehd() {
     log "Installing FaceTime HD camera driver…"
     warn "FaceTime HD setup is fragile. Manual route: https://github.com/patjak/facetimehd/wiki/Get-Started"
 
-    # Secure Boot blocks unsigned DKMS modules — detect early and abort clearly.
+    # Secure Boot blocks unsigned kmod modules at load time with no visible
+    # error in user-facing apps. Detect early and abort cleanly.
     if command -v mokutil &>/dev/null; then
         if mokutil --sb-state 2>/dev/null | grep -qi "SecureBoot enabled"; then
-            warn "Secure Boot is ENABLED — the facetimehd DKMS module is unsigned and will NOT load."
+            warn "Secure Boot is ENABLED — the facetimehd kmod is unsigned and will NOT load."
             warn "Disable Secure Boot in your firmware settings, then re-run the script."
             return 0
         fi
     fi
 
-    if ! dnf copr enable -y mulderje/facetimehd-dkms 2>/dev/null; then
-        warn "COPR not available for Fedora $(rpm -E %fedora) — skipping FaceTime HD"
+    # Enable COPR. Don't redirect stderr — if the COPR doesn't exist or the
+    # network fails, we want the actual error visible rather than a silent
+    # "skipping" that the user can't debug.
+    log "Enabling COPR mulderje/facetimehd-kmod…"
+    if ! dnf copr enable -y mulderje/facetimehd-kmod; then
+        warn "Could not enable mulderje/facetimehd-kmod COPR — skipping FaceTime HD."
+        warn "Check the error above. Common causes: network, COPR outage, or unsupported Fedora release."
         return 0
     fi
 
-    if ! dnf install -y facetimehd-firmware facetimehd-dkms; then
-        warn "Camera package install failed — skipping FaceTime HD"
+    # The kmod package ships a pre-built module for the running kernel.
+    # If the kmod hasn't been built yet for a brand-new kernel, this fails
+    # and we surface that clearly.
+    if ! dnf install -y facetimehd-firmware facetimehd-kmod; then
+        warn "Camera package install failed — skipping FaceTime HD."
+        warn "If your kernel is very new, the kmod may not be built yet."
+        warn "Check: https://copr.fedorainfracloud.org/coprs/mulderje/facetimehd-kmod/builds/"
         return 0
-    fi
-
-    # Build the DKMS module for the running kernel now. Preserve output so a
-    # build failure is visible rather than silently swallowed.
-    log "Building facetimehd DKMS module for kernel $(uname -r)…"
-    local dkms_out
-    dkms_out=$(dkms autoinstall 2>&1) || true
-    if ! dkms status 2>/dev/null | grep -q "facetimehd.*installed"; then
-        warn "DKMS module did not install cleanly. DKMS output:"
-        warn "$dkms_out"
-        warn "To retry: sudo dkms autoinstall -k $(uname -r)"
     fi
 
     # The facetimehd-firmware %post scriptlet downloads firmware from Apple CDN.
@@ -162,7 +166,7 @@ install_facetimehd() {
         fi
     else
         warn "facetimehd module not loadable now: $modprobe_err"
-        warn "Should work after reboot if DKMS built successfully."
+        warn "Should work after reboot if the kmod package matched your kernel."
     fi
 
     mark_reboot "FaceTime HD camera (kernel module + firmware)"
