@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mac-linux-postinstall — one-line setup for Linux on MacBooks</title>
+<meta name="description" content="One-line post-install script for Linux on Apple MacBooks. Fixes WiFi, codecs, fan curves, function keys, battery — everything broken out of the box.">
+<style>
+  :root {
+    --bg: #fafafa;
+    --fg: #1a1a1a;
+    --muted: #666;
+    --accent: #1565c0;
+    --code-bg: #1e1e1e;
+    --code-fg: #f5f5f5;
+    --border: #e0e0e0;
+    --warn-bg: #fff8e1;
+    --warn-border: #ffb300;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a1a;
+      --fg: #f0f0f0;
+      --muted: #999;
+      --accent: #64b5f6;
+      --code-bg: #0d0d0d;
+      --code-fg: #f5f5f5;
+      --border: #333;
+      --warn-bg: #2a2410;
+      --warn-border: #806020;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.6;
+  }
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 4rem;
+  }
+  h1 {
+    font-size: 2.2rem;
+    margin: 0 0 .25rem;
+    letter-spacing: -.02em;
+  }
+  .tagline {
+    color: var(--muted);
+    margin: 0 0 2.5rem;
+    font-size: 1.1rem;
+  }
+  h2 {
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin: 2.5rem 0 .75rem;
+    font-weight: 600;
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-fg);
+    padding: 1rem 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: "SF Mono", Menlo, Consolas, "Courier New", monospace;
+    font-size: .95rem;
+    margin: .5rem 0;
+    position: relative;
+  }
+  pre code { all: unset; }
+  .copy-hint {
+    color: var(--muted);
+    font-size: .85rem;
+    margin: .25rem 0 1.25rem .25rem;
+  }
+  ul { padding-left: 1.4rem; }
+  li { margin: .3rem 0; }
+  a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  a:hover { text-decoration: underline; }
+  .matrix {
+    border-collapse: collapse;
+    width: 100%;
+    margin: .5rem 0 1rem;
+    font-size: .95rem;
+  }
+  .matrix th, .matrix td {
+    text-align: left;
+    padding: .5rem .8rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .matrix th { color: var(--muted); font-weight: 600; }
+  .badge {
+    display: inline-block;
+    padding: .1rem .5rem;
+    border-radius: 4px;
+    font-size: .8rem;
+    font-weight: 600;
+  }
+  .badge-supported { background: #c8e6c9; color: #1b5e20; }
+  .badge-planned   { background: #fff9c4; color: #5d4037; }
+  @media (prefers-color-scheme: dark) {
+    .badge-supported { background: #1b5e20; color: #c8e6c9; }
+    .badge-planned   { background: #5d4037; color: #fff9c4; }
+  }
+  .warn {
+    background: var(--warn-bg);
+    border-left: 4px solid var(--warn-border);
+    padding: .75rem 1rem;
+    margin: 1rem 0;
+    border-radius: 4px;
+    font-size: .95rem;
+  }
+  footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: .9rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>mac&#8209;linux&#8209;postinstall</h1>
+<p class="tagline">One line. Everything broken on a fresh Linux install on your MacBook — fixed.</p>
+
+<h2>Install</h2>
+
+<p>Paste one of these into a terminal on your freshly-installed Linux system:</p>
+
+<pre><code>bash -c "$(curl -fsSL https://karolnowacki.github.io/mac-linux-postinstall/install.sh)"</code></pre>
+<p class="copy-hint">If you have <code>curl</code> (Fedora, most desktops).</p>
+
+<pre><code>bash -c "$(wget -qO- https://karolnowacki.github.io/mac-linux-postinstall/install.sh)"</code></pre>
+<p class="copy-hint">If you only have <code>wget</code> (some Debian/Ubuntu installs).</p>
+
+<div class="warn">
+<strong>Run as your normal user, not as root.</strong> The script asks for your sudo password when needed.
+</div>
+
+<h2>What it does</h2>
+<ul>
+  <li>Detects your MacBook model and Linux distro</li>
+  <li>Installs the critical drivers automatically (WiFi, codecs, function keys)</li>
+  <li>Asks you to pick optional must-haves: TLP, mbpfan, Flathub, dev tools, GNOME tweaks</li>
+  <li>Tells you when a reboot is needed</li>
+</ul>
+
+<h2>Supported targets</h2>
+<table class="matrix">
+  <thead>
+    <tr><th>MacBook</th><th>Distro</th><th>Status</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>MacBook Air 2017 (MacBookAir7,2)</td>
+      <td>Fedora Workstation 44</td>
+      <td><span class="badge badge-supported">Supported</span></td>
+    </tr>
+    <tr>
+      <td colspan="2"><em>more devices &amp; distros…</em></td>
+      <td><span class="badge badge-planned">Planned</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Before you run it</h2>
+<ul>
+  <li>Finish your Linux install and boot into the new system</li>
+  <li>Get online — wired USB-C ethernet or phone tethering (WiFi probably won't work yet, that's what this script fixes)</li>
+  <li>Run a system update first: <code>sudo dnf upgrade --refresh -y &amp;&amp; sudo reboot</code></li>
+</ul>
+
+<h2>Source</h2>
+<p>
+  Code: <a href="https://github.com/karolnowacki/mac-linux-postinstall">github.com/karolnowacki/mac-linux-postinstall</a><br>
+  Issues / unsupported hardware reports: <a href="https://github.com/karolnowacki/mac-linux-postinstall/issues">open an issue</a>
+</p>
+
+<footer>
+  Inspired by <a href="https://brew.sh">brew.sh</a>. MIT licensed.
+</footer>
+
+</div>
+</body>
+</html>
