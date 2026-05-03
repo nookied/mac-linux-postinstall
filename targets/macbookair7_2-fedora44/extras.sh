@@ -26,9 +26,9 @@
 # Order here is the order shown in the menu.
 EXTRAS_MANIFEST=(
     "tlp|TLP power management (better battery life)|on"
-    "mbpfan|mbpfan (sensible fan curves, runs cooler than Apple SMC default)|on"
+    "mbpfan|Sensible fan curves (cooler than Apple SMC default)|on"
     "flathub|Full Flathub remote (Fedora's default is filtered)|on"
-    "dev_tools|Developer tools (git, neovim, tmux, gcc, clang, ripgrep, etc.)|on"
+    "dev_tools|Developer tools (git, neovim, tmux, gcc, clang, etc.)|on"
     "gnome_tweaks|GNOME Tweaks + Extension Manager|on"
     "facetimehd|FaceTime HD camera driver (FRAGILE — see notes)|off"
 )
