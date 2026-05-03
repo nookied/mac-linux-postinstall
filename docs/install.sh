@@ -47,7 +47,7 @@ if [ -t 1 ]; then
     _C_BLUE=$'\033[1;34m'; _C_YELLOW=$'\033[1;33m'
     _C_RED=$'\033[1;31m'; _C_GREEN=$'\033[1;32m'; _C_DIM=$'\033[2m'
 else
-    _C_RESET= _C_BOLD= _C_BLUE= _C_YELLOW= _C_RED= _C_GREEN= _C_DIM=
+    _C_RESET=''; _C_BOLD=''; _C_BLUE=''; _C_YELLOW=''; _C_RED=''; _C_GREEN=''; _C_DIM=''
 fi
 log()  { printf '\n%s==>%s %s%s%s\n' "$_C_BLUE"   "$_C_RESET" "$_C_BOLD" "$*" "$_C_RESET"; }
 ok()   { printf '%s✓%s %s\n'         "$_C_GREEN"  "$_C_RESET" "$*"; }

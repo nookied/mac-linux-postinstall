@@ -21,7 +21,7 @@ if [ -t 1 ]; then
     _C_GREEN=$'\033[1;32m'
     _C_DIM=$'\033[2m'
 else
-    _C_RESET= _C_BOLD= _C_BLUE= _C_YELLOW= _C_RED= _C_GREEN= _C_DIM=
+    _C_RESET=''; _C_BOLD=''; _C_BLUE=''; _C_YELLOW=''; _C_RED=''; _C_GREEN=''; _C_DIM=''
 fi
 
 # ---------------- Logging helpers -------------------------------------------
@@ -43,20 +43,19 @@ die() {
 # ---------------- Reboot tracking -------------------------------------------
 # Steps that need a reboot (kernel module, initramfs, etc.) call:
 #     mark_reboot "reason"
-# Bootstrap reads $REBOOT_NEEDED + $REBOOT_REASONS at the end to decide
-# whether to print the reboot reminder.
+# The reason is appended to $MACLIN_REBOOT_FILE (path exported by the
+# bootstrap). The bootstrap then checks the file is non-empty after the
+# install phase to decide whether to print the reboot reminder.
 #
-# We persist to a file because essentials.sh and extras.sh run in a child
-# bash invocation under sudo, so an exported variable would not propagate
-# back. The file path is set by the bootstrap and exported as
-# $MACLIN_REBOOT_FILE.
+# File-based rather than env-variable because essentials.sh and extras.sh
+# run in a child bash invocation under sudo — an exported variable set
+# inside that child would not propagate back to the parent bootstrap.
 
 mark_reboot() {
     local reason="${1:-unspecified}"
     if [ -n "${MACLIN_REBOOT_FILE:-}" ]; then
         printf '%s\n' "$reason" >> "$MACLIN_REBOOT_FILE"
     fi
-    REBOOT_NEEDED=true
 }
 
 reboot_reasons() {

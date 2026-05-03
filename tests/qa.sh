@@ -137,10 +137,12 @@ if command -v shellcheck >/dev/null 2>&1; then
         "$REPO_ROOT/lib/pkg.sh" \
         "$REPO_ROOT/lib/ui.sh"; do
         name="${f#"$REPO_ROOT/"}"
-        if shellcheck -x "$f" >/dev/null 2>&1; then
+        # --source-path=SCRIPTDIR lets shellcheck resolve `. "$(dirname …)/common.sh"`
+        # in the lib/* files, which it cannot do statically without the hint.
+        if shellcheck --source-path=SCRIPTDIR -x "$f" >/dev/null 2>&1; then
             pass "shellcheck $name"
         else
-            fail "shellcheck $name" "$(shellcheck -x "$f" 2>&1 | head -5 || true)"
+            fail "shellcheck $name" "$(shellcheck --source-path=SCRIPTDIR -x "$f" 2>&1 | head -5 || true)"
         fi
     done
 else
@@ -320,23 +322,29 @@ section "4. lib/detect.sh — slug + target resolution"
    || fail "detect_distro: os-release vars do not leak into parent scope"
 
 # 4g. detect_distro parses DISTRO_ID and DISTRO_VERSION
-(
-    _MACLIN_COMMON_LOADED=1
-    has_cmd() { command -v "$1" >/dev/null 2>&1; }
-    die()  { echo "[die] $1" >&2; exit 1; }
-    log()  { :; }
-    warn() { :; }
-    . "$REPO_ROOT/lib/detect.sh"
-    detect_distro
-    # We're running on this machine's OS, so DISTRO_ID should be non-empty
-    [[ -n "$DISTRO_ID" && "$DISTRO_ID" != "unknown" ]] || {
-        echo "DISTRO_ID is empty or unknown: '$DISTRO_ID'"; exit 1
-    }
-    [[ -n "$DISTRO_VERSION" ]] || {
-        echo "DISTRO_VERSION is empty: '$DISTRO_VERSION'"; exit 1
-    }
-) && pass "detect_distro: DISTRO_ID and DISTRO_VERSION are set from /etc/os-release" \
-   || fail "detect_distro: DISTRO_ID and DISTRO_VERSION are set from /etc/os-release"
+# Skip when /etc/os-release is missing (e.g. running this on macOS for dev) —
+# the test verifies parsing of a real os-release, which doesn't exist there.
+if [ -r /etc/os-release ]; then
+    (
+        _MACLIN_COMMON_LOADED=1
+        has_cmd() { command -v "$1" >/dev/null 2>&1; }
+        die()  { echo "[die] $1" >&2; exit 1; }
+        log()  { :; }
+        warn() { :; }
+        . "$REPO_ROOT/lib/detect.sh"
+        detect_distro
+        [[ -n "$DISTRO_ID" && "$DISTRO_ID" != "unknown" ]] || {
+            echo "DISTRO_ID is empty or unknown: '$DISTRO_ID'"; exit 1
+        }
+        [[ -n "$DISTRO_VERSION" ]] || {
+            echo "DISTRO_VERSION is empty: '$DISTRO_VERSION'"; exit 1
+        }
+    ) && pass "detect_distro: DISTRO_ID and DISTRO_VERSION are set from /etc/os-release" \
+       || fail "detect_distro: DISTRO_ID and DISTRO_VERSION are set from /etc/os-release"
+else
+    skip "detect_distro: DISTRO_ID and DISTRO_VERSION are set from /etc/os-release" \
+         "/etc/os-release not present (running on non-Linux dev host)"
+fi
 
 # =============================================================================
 # 5. lib/pkg.sh — package manager detection

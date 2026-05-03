@@ -77,7 +77,7 @@ mac-linux-postinstall/
 11. Write user selections to $tmpdir/selections.env
 12. Re-exec the install runner under sudo, passing $tmpdir
 13. Runner sources selections.env + essentials.sh + extras.sh (gated by selections)
-14. Print summary + reboot reminder if any step set REBOOT_NEEDED=true
+14. Print summary + reboot reminder if any step appended to $MACLIN_REBOOT_FILE
 ```
 
 ---
@@ -91,7 +91,7 @@ mac-linux-postinstall/
 - Functions: `lower_snake_case`. Constants/exported vars: `UPPER_SNAKE_CASE`
 - Use `lib/common.sh::log/warn/err` — do not echo raw status messages
 - Idempotent steps: every install should be safe to re-run. Use `dnf install -y` (no-op if installed), `flatpak remote-add --if-not-exists`, `systemctl enable --now` (idempotent), guards like `[ -f /etc/modprobe.d/foo.conf ] || …`
-- Set `REBOOT_NEEDED=true` (env var, exported by `common.sh`) when a step requires reboot
+- Call `mark_reboot "<short reason>"` (defined in `common.sh`) when a step requires reboot. It appends to `$MACLIN_REBOOT_FILE`; bootstrap reads that file at the end. Reason: env vars don't survive the sudo re-exec boundary, so file-based.
 
 ### Target naming
 
