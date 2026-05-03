@@ -36,10 +36,13 @@ EXTRAS_MANIFEST=(
 # ---------------- 1. TLP ----------------------------------------------------
 install_tlp() {
     log "Installing TLP (battery optimization)…"
-    dnf install -y tlp tlp-rdw
-    # power-profiles-daemon conflicts with TLP; stop it now and prevent restarts.
+    # On Fedora 44, tuned-ppd ships dbus files that conflict with TLP at the
+    # package level — DNF will refuse to install TLP until tuned-ppd is gone.
+    systemctl disable --now tuned-ppd.service 2>/dev/null || true
     systemctl disable --now power-profiles-daemon.service 2>/dev/null || true
+    dnf remove -y tuned-ppd 2>/dev/null || true
     systemctl mask power-profiles-daemon.service 2>/dev/null || true
+    dnf install -y tlp tlp-rdw
     systemctl enable --now tlp.service
 }
 
