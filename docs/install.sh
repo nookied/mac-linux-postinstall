@@ -7,8 +7,8 @@
 # at runtime.
 #
 # Invoked via:
-#   bash -c "$(curl -fsSL https://karolnowacki.github.io/mac-linux-postinstall/install.sh)"
-#   bash -c "$(wget -qO- https://karolnowacki.github.io/mac-linux-postinstall/install.sh)"
+#   bash -c "$(curl -fsSL https://nookied.github.io/mac-linux-postinstall/install.sh)"
+#   bash -c "$(wget -qO- https://nookied.github.io/mac-linux-postinstall/install.sh)"
 #
 # DO NOT change to `curl … | bash` — that detaches stdin and breaks whiptail.
 #
@@ -29,7 +29,7 @@
 set -euo pipefail
 
 # ---------------- Config ----------------------------------------------------
-GH_USER="karolnowacki"
+GH_USER="nookied"
 GH_REPO="mac-linux-postinstall"
 GH_BRANCH="main"   # pinned to main per project decision (see CLAUDE.md §8)
 

@@ -13,13 +13,13 @@ After a fresh Linux install on your MacBook, paste one command and the script:
 If you have `curl` (Fedora and most desktop installs):
 
 ```bash
-bash -c "$(curl -fsSL https://karolnowacki.github.io/mac-linux-postinstall/install.sh)"
+bash -c "$(curl -fsSL https://nookied.github.io/mac-linux-postinstall/install.sh)"
 ```
 
 If you only have `wget` (some Debian/Ubuntu installs):
 
 ```bash
-bash -c "$(wget -qO- https://karolnowacki.github.io/mac-linux-postinstall/install.sh)"
+bash -c "$(wget -qO- https://nookied.github.io/mac-linux-postinstall/install.sh)"
 ```
 
 > Run as your **normal user**, not as root. The script will ask for your sudo password when needed.
@@ -42,7 +42,7 @@ bash -c "$(wget -qO- https://karolnowacki.github.io/mac-linux-postinstall/instal
 | MacBook Air 2017 (`MacBookAir7,2`) | Fedora Workstation 44 | Supported |
 | more devices & distros… | | Planned |
 
-If your hardware/distro combo isn't supported, the script will detect it and exit cleanly. [Open an issue](https://github.com/karolnowacki/mac-linux-postinstall/issues) with what was detected and we'll consider adding it.
+If your hardware/distro combo isn't supported, the script will detect it and exit cleanly. [Open an issue](https://github.com/nookied/mac-linux-postinstall/issues) with what was detected and we'll consider adding it.
 
 ## What gets installed
 

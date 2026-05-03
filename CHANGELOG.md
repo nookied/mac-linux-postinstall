@@ -26,6 +26,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - **TUI selector**: replaced static `INSTALL_*=true` config flags at the top of the script with a runtime whiptail checklist populated from `extras.sh`. Defaults preserved from the original script.
 - **Hosting**: bootstrap lives at `docs/install.sh` (single source of truth). Considered keeping `bootstrap.sh` at root with a copy in `docs/` but rejected because GitHub Pages does not follow symlinks and duplication risks drift.
 
+### Fixed
+
+- **GitHub username**: initial scaffolding hardcoded `karolnowacki` (inferred from the local macOS user dir `/Users/karolnowacki/`). Real GitHub handle is `nookied`. Replaced across `docs/install.sh` (GH_USER + URL comments), `docs/index.html` (install commands + footer links), `README.md` (install commands + issue link), and `CLAUDE.md` (architecture notes). Lesson for future agents: never infer a GitHub username from `$HOME` — always ask.
+
 ### Removed
 
 - **`fedora-mba-setup.sh`** (the original framework script provided at project start) — content split into `targets/macbookair7_2-fedora44/essentials.sh` (RPM Fusion, Broadcom WiFi, codecs, fn-key fix) and `extras.sh` (TLP, mbpfan, Flathub, dev tools, GNOME tweaks, FaceTime camera). Git history preserves the original. Do not recreate.

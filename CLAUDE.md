@@ -25,8 +25,8 @@ A `brew.sh`-inspired one-liner post-install script for Linux running on Apple Ma
 Two forms shipped on the landing page (some distros default to `wget`, some to `curl`):
 
 ```bash
-bash -c "$(curl -fsSL https://karolnowacki.github.io/mac-linux-postinstall/install.sh)"
-bash -c "$(wget -qO- https://karolnowacki.github.io/mac-linux-postinstall/install.sh)"
+bash -c "$(curl -fsSL https://nookied.github.io/mac-linux-postinstall/install.sh)"
+bash -c "$(wget -qO- https://nookied.github.io/mac-linux-postinstall/install.sh)"
 ```
 
 **Why `bash -c "$(…)"` instead of `… | bash`**: piping detaches stdin from the terminal, breaking interactive prompts and whiptail. Command substitution puts the script in argv and leaves stdin attached. Do not change this pattern.
@@ -162,7 +162,7 @@ For unsupported targets, also verify the friendly error path:
 
 ## 9. Open / deferred decisions
 
-- Custom domain (e.g. `maclin.sh`): deferred. Currently using `karolnowacki.github.io`. When a domain is added, set `docs/CNAME` and update both this file and README.
+- Custom domain (e.g. `maclin.sh`): deferred. Currently using `nookied.github.io`. When a domain is added, set `docs/CNAME` and update both this file and README.
 - Release tagging: deferred until after MVP works end-to-end.
 - CI / shellcheck: deferred. Worth adding once a second target exists.
 - Telemetry / opt-in usage stats: out of scope, do not add.
