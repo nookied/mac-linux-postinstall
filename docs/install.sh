@@ -208,7 +208,9 @@ for entry in "${EXTRAS_MANIFEST[@]}"; do
     CHECKLIST_ARGS+=("$key" "$desc" "$default")
 done
 
-log "Showing extras menu…"
+# Clear the terminal before whiptail so dnf/log output from prior steps
+# doesn't appear behind the dialog as a false second dialog-border.
+clear 2>/dev/null || true
 SELECTED=$(tui_checklist "Optional extras for $TARGET" \
     "Critical drivers will be installed automatically.\nPick which optional extras you want:" \
     "${CHECKLIST_ARGS[@]}") || die "Aborted at extras selection." 0
