@@ -1,5 +1,7 @@
 # mac-linux-postinstall
 
+[![QA](https://github.com/nookied/mac-linux-postinstall/actions/workflows/qa.yml/badge.svg)](https://github.com/nookied/mac-linux-postinstall/actions/workflows/qa.yml)
+
 One-line post-install script for Linux running on Apple MacBooks. Inspired by [brew.sh](https://brew.sh).
 
 After a fresh Linux install on your MacBook, paste one command and the script:

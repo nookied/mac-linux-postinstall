@@ -10,6 +10,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Added
 
+- **GitHub Actions CI** (`.github/workflows/qa.yml`) — runs `tests/qa.sh` on every push to `main`, every PR targeting `main`, and on manual dispatch. Uses `ubuntu-latest` (shellcheck preinstalled, bash 5+). Status badge in README. The Linux runner means the `detect_distro` test (which skips on macOS dev hosts) actually runs there against Ubuntu's `/etc/os-release`.
+- **`.gitignore`** — covers `.DS_Store` (macOS Finder metadata that got accidentally committed in `d3612f1` and was later untracked), editor scratch files (`.vscode/`, `.idea/`, vim swap), and common temp patterns.
 - **`tests/qa.sh`** — automated unit test suite (no hardware required). Covers bash syntax checks, `lib/common.sh` reboot tracking, `lib/detect.sh` slug conversion and target resolution, `lib/ui.sh` checklist fallback, `extras.sh` manifest integrity, and bootstrap structural invariants. Run with `bash tests/qa.sh`.
 - **Project scaffolding** — converted single-script repo into a multi-target framework.
   - `docs/install.sh` — the bootstrap (entry point users `curl`/`wget`).

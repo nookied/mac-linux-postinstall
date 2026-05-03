@@ -175,5 +175,5 @@ For unsupported targets, also verify the friendly error path:
 
 - Custom domain (e.g. `maclin.sh`): deferred. Currently using `nookied.github.io`. When a domain is added, set `docs/CNAME` and update both this file and README.
 - Release tagging: deferred until after MVP works end-to-end.
-- CI / shellcheck: deferred. Worth adding once a second target exists.
+- CI: GitHub Actions workflow at `.github/workflows/qa.yml` runs `tests/qa.sh` on every push to main and PR. Status badge in README. The runner is `ubuntu-latest`; shellcheck is preinstalled there.
 - Telemetry / opt-in usage stats: out of scope, do not add.

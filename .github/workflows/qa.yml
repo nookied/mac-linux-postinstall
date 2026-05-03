@@ -1,0 +1,31 @@
+name: QA
+
+# Run the test suite on every push to main and every PR targeting main.
+# tests/qa.sh covers: bash syntax, shellcheck, lib/* unit tests,
+# bootstrap structural invariants, and target manifest integrity.
+# Hardware-specific tests are skipped automatically — see CLAUDE.md §7.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Allow manual runs from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  qa:
+    name: tests/qa.sh
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show environment
+        run: |
+          bash --version | head -1
+          shellcheck --version | head -2
+          cat /etc/os-release | head -3
+
+      - name: Run QA suite
+        run: bash tests/qa.sh
