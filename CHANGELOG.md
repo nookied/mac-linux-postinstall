@@ -28,6 +28,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Fixed
 
+- **Unsupported target flow**: `docs/install.sh` now downloads the repo and runs full target detection before `sudo -v`, so unsupported machines exit with the friendly message before any privilege prompt.
+- **mbpfan source fallback**: when Fedora does not provide `mbpfan`, the source build now clones the maintained `linux-on-mac/mbpfan` repo, installs the systemd unit explicitly, and warns instead of aborting the whole run if the optional fallback fails.
+- **TLP service conflict handling**: TLP setup now stops/disables and masks `power-profiles-daemon.service` before enabling `tlp.service`, preventing the conflicting daemon from continuing in the current boot.
+- **hid_apple config preservation**: function-key setup now updates or appends only the `fnmode=2` option instead of overwriting the whole `/etc/modprobe.d/hid_apple.conf` file.
 - **GitHub username**: initial scaffolding hardcoded `karolnowacki` (inferred from the local macOS user dir `/Users/karolnowacki/`). Real GitHub handle is `nookied`. Replaced across `docs/install.sh` (GH_USER + URL comments), `docs/index.html` (install commands + footer links), `README.md` (install commands + issue link), and `CLAUDE.md` (architecture notes). Lesson for future agents: never infer a GitHub username from `$HOME` — always ask.
 
 ### Removed

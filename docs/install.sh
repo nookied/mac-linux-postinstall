@@ -14,14 +14,15 @@
 #
 # Flow:
 #   1. Sanity checks (Linux, network, fetcher, tar)
-#   2. Detect device + distro → resolve target id (no sudo needed)
+#   2. Lightweight device + distro detection for the banner
 #   3. Show banner, prompt user to continue (plain text, no whiptail yet)
-#   4. Cache sudo credentials
-#   5. Install whiptail (newt on Fedora, whiptail on Debian-family)
-#   6. Download repo tarball, extract to tempdir
-#   7. Show whiptail checklist of optional extras
-#   8. Re-exec installer phase under sudo with selections
-#   9. Print summary + reboot reminder
+#   4. Download repo tarball, extract to tempdir
+#   5. Run full target detection; abort unsupported targets before sudo
+#   6. Cache sudo credentials
+#   7. Install whiptail (newt on Fedora, whiptail on Debian-family)
+#   8. Show whiptail checklist of optional extras
+#   9. Re-exec installer phase under sudo with selections
+#  10. Print summary + reboot reminder
 # ----------------------------------------------------------------------------
 # Architecture notes for future agents: see CLAUDE.md
 # ============================================================================
@@ -123,20 +124,16 @@ case "${reply,,}" in
     *) die "Aborted." 0 ;;
 esac
 
-# ---------------- 4. Sudo credential cache ----------------------------------
-log "Caching sudo credentials (you'll be prompted once)…"
-if ! sudo -v; then
-    die "Sudo authentication failed. Aborting."
-fi
-# Keep the credential alive while we work. Background loop refreshes every
-# minute; killed on exit.
-( while true; do sudo -n true; sleep 60; kill -0 $$ 2>/dev/null || exit; done ) &
-SUDO_KEEPALIVE_PID=$!
-trap 'kill $SUDO_KEEPALIVE_PID 2>/dev/null || true' EXIT
-
-# ---------------- 5. Download the repo tarball ------------------------------
+# ---------------- 4. Download the repo tarball ------------------------------
 TMPDIR=$(mktemp -d -t maclin.XXXXXX)
-trap 'kill $SUDO_KEEPALIVE_PID 2>/dev/null || true; rm -rf "$TMPDIR"' EXIT
+SUDO_KEEPALIVE_PID=""
+cleanup() {
+    if [ -n "${SUDO_KEEPALIVE_PID:-}" ]; then
+        kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
+    fi
+    rm -rf "$TMPDIR"
+}
+trap cleanup EXIT
 
 log "Downloading repo tarball…"
 TARBALL="$TMPDIR/repo.tar.gz"
@@ -157,7 +154,7 @@ tar -xzf "$TARBALL" -C "$REPO_DIR" --strip-components=1 \
 
 ok "Repo downloaded to $REPO_DIR"
 
-# ---------------- 6. Source the full lib/ -----------------------------------
+# ---------------- 5. Source the full lib/ + resolve target ------------------
 # shellcheck source=/dev/null
 . "$REPO_DIR/lib/common.sh"
 # shellcheck source=/dev/null
@@ -181,6 +178,16 @@ fi
 
 TARGET_DIR="$REPO_DIR/targets/$TARGET"
 [ -d "$TARGET_DIR" ] || die "Target dir missing: $TARGET_DIR (this is a bug — the target was resolved but its scripts aren't in the repo)"
+
+# ---------------- 6. Sudo credential cache ----------------------------------
+log "Caching sudo credentials (you'll be prompted once)…"
+if ! sudo -v; then
+    die "Sudo authentication failed. Aborting."
+fi
+# Keep the credential alive while we work. Background loop refreshes every
+# minute; killed on exit.
+( while true; do sudo -n true; sleep 60; kill -0 $$ 2>/dev/null || exit; done ) &
+SUDO_KEEPALIVE_PID=$!
 
 # ---------------- 7. Install whiptail ---------------------------------------
 detect_pkg_manager

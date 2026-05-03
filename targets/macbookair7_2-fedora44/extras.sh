@@ -37,25 +37,35 @@ EXTRAS_MANIFEST=(
 install_tlp() {
     log "Installing TLP (battery optimization)…"
     dnf install -y tlp tlp-rdw
-    systemctl enable --now tlp
-    # power-profiles-daemon conflicts with TLP. Mask is idempotent.
-    systemctl mask power-profiles-daemon 2>/dev/null || true
+    # power-profiles-daemon conflicts with TLP; stop it now and prevent restarts.
+    systemctl disable --now power-profiles-daemon.service 2>/dev/null || true
+    systemctl mask power-profiles-daemon.service 2>/dev/null || true
+    systemctl enable --now tlp.service
 }
 
 # ---------------- 2. mbpfan -------------------------------------------------
 install_mbpfan() {
     log "Setting up mbpfan…"
     if dnf install -y mbpfan 2>/dev/null; then
-        systemctl enable --now mbpfan
+        systemctl enable --now mbpfan.service
     else
         warn "mbpfan not in repos — building from source"
-        dnf install -y git make gcc
+        if ! dnf install -y git make gcc; then
+            warn "Could not install mbpfan build dependencies — skipping mbpfan"
+            return 0
+        fi
         local tmpdir
         tmpdir=$(mktemp -d)
-        git clone --depth=1 https://github.com/dgraziotin/mbpfan.git "$tmpdir/mbpfan"
-        ( cd "$tmpdir/mbpfan" && make && make install )
-        systemctl daemon-reload
-        systemctl enable --now mbpfan
+        if git clone --depth=1 https://github.com/linux-on-mac/mbpfan.git "$tmpdir/mbpfan" \
+            && ( cd "$tmpdir/mbpfan" && make && make install ) \
+            && [ -f "$tmpdir/mbpfan/mbpfan.service" ] \
+            && install -m 0644 "$tmpdir/mbpfan/mbpfan.service" /etc/systemd/system/mbpfan.service \
+            && systemctl daemon-reload \
+            && systemctl enable --now mbpfan.service; then
+            ok "mbpfan built and enabled from source"
+        else
+            warn "mbpfan source install failed — skipping mbpfan"
+        fi
         rm -rf "$tmpdir"
     fi
 }

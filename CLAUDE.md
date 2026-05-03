@@ -64,14 +64,14 @@ mac-linux-postinstall/
 ```
 1. User pastes one-liner
 2. docs/install.sh runs as the user (NOT root)
-3. Sanity checks: Linux? curl OR wget? tar? /etc/os-release exists?
+3. Sanity checks: Linux? normal user? curl OR wget? tar? bash?
 4. Banner + plain-text "continue? [y/N]" (no whiptail dep yet)
-5. Detect device + distro → resolve target id (e.g. "macbookair7_2-fedora44")
-6. If unsupported target → print friendly message + open issue link, exit
-7. sudo -v   (cache credentials, abort if user denies)
-8. Download repo tarball → tempdir, extract with --strip-components=1
+5. Download repo tarball → tempdir, extract with --strip-components=1
+6. Source lib/*, detect device + distro → resolve target id (e.g. "macbookair7_2-fedora44")
+7. If unsupported target → print friendly message + open issue link, exit **before sudo**
+8. sudo -v   (cache credentials, abort if user denies)
 9. Install whiptail (newt on Fedora, whiptail on Debian-family) via lib/pkg.sh
-10. Source lib/* and targets/<id>/extras.sh → show whiptail checklist with defaults
+10. Source targets/<id>/extras.sh → show whiptail checklist with defaults
 11. Write user selections to $tmpdir/selections.env
 12. Re-exec the install runner under sudo, passing $tmpdir
 13. Runner sources selections.env + essentials.sh + extras.sh (gated by selections)
@@ -126,8 +126,9 @@ Detection logic in `lib/detect.sh` maps `(DMI product, distro id, distro version
 6. **`/sys/class/dmi/id/product_name`** is readable without sudo on Linux — use it instead of `dmidecode` for pre-escalation device detection. Fall back to `dmidecode` only if the sys file is missing.
 7. **Akmod build for Broadcom WiFi**: the `akmods --force` step can spuriously report errors but the module usually still builds on next boot. Treat its non-zero exit as a warning, not failure.
 8. **FaceTime HD camera**: fragile, always default to OFF in the checklist. Document upstream wiki link in `extras.sh`.
-9. **`power-profiles-daemon` vs TLP**: they conflict. If installing TLP, mask `power-profiles-daemon` (idempotent — `systemctl mask` is safe to re-run).
+9. **`power-profiles-daemon` vs TLP**: they conflict. If installing TLP, stop/disable `power-profiles-daemon.service`, mask it, then enable `tlp.service` so the conflicting daemon does not keep running in the current boot.
 10. **Tarball extraction path**: GitHub's tarball top-level dir is `<repo>-<branch>/`. Use `tar xz --strip-components=1` to flatten.
+11. **Unsupported targets must exit before sudo**: full detection currently requires downloading and sourcing the repo first, but `sudo -v` must stay after target resolution so unsupported machines are never asked for elevated privileges.
 
 ---
 

@@ -44,10 +44,15 @@ dnf install -y libavcodec-freeworld
 # Make F-row keys default to brightness/volume/etc. without holding Fn.
 # This matches macOS behavior. Requires regenerating the initramfs.
 log "Configuring brightness/volume keys to work WITHOUT pressing Fn…"
-if ! grep -q '^options hid_apple fnmode=2' /etc/modprobe.d/hid_apple.conf 2>/dev/null; then
-    echo "options hid_apple fnmode=2" > /etc/modprobe.d/hid_apple.conf
+HID_APPLE_CONF="/etc/modprobe.d/hid_apple.conf"
+if grep -Eq '^options[[:space:]]+hid_apple([[:space:]].*)?[[:space:]]fnmode=2([[:space:]]|$)' "$HID_APPLE_CONF" 2>/dev/null; then
+    ok "hid_apple fnmode=2 already configured"
+else
+    if [ -f "$HID_APPLE_CONF" ] && grep -Eq '^options[[:space:]]+hid_apple([[:space:]].*)?[[:space:]]fnmode=' "$HID_APPLE_CONF"; then
+        sed -i -E '/^options[[:space:]]+hid_apple/ s/(^|[[:space:]])fnmode=[^[:space:]]+/\1fnmode=2/' "$HID_APPLE_CONF"
+    else
+        printf '%s\n' "options hid_apple fnmode=2" >> "$HID_APPLE_CONF"
+    fi
     dracut --force
     mark_reboot "Function key behavior (initramfs rebuilt)"
-else
-    ok "hid_apple fnmode=2 already configured"
 fi
