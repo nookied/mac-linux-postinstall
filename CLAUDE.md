@@ -126,7 +126,7 @@ Detection logic in `lib/detect.sh` maps `(DMI product, distro id, distro version
 6. **`/sys/class/dmi/id/product_name`** is readable without sudo on Linux — use it instead of `dmidecode` for pre-escalation device detection. Fall back to `dmidecode` only if the sys file is missing.
 7. **Akmod build for Broadcom WiFi**: the `akmods --force` step can spuriously report errors but the module usually still builds on next boot. Treat its non-zero exit as a warning, not failure.
 8. **FaceTime HD camera**: fragile, always default to OFF in the checklist. Document upstream wiki link in `extras.sh`.
-9. **`power-profiles-daemon` vs TLP**: they conflict. If installing TLP, stop/disable `power-profiles-daemon.service`, mask it, then enable `tlp.service` so the conflicting daemon does not keep running in the current boot.
+9. **`power-profiles-daemon` / `tuned-ppd` vs TLP**: they conflict at the **package level** on Fedora 44. `tuned-ppd` ships dbus files that TLP also owns — `dnf install tlp` will fail with an RPM file-conflict error before writing anything. Fix: stop/disable `tuned-ppd.service`, `dnf remove -y tuned-ppd`, mask `power-profiles-daemon.service`, *then* `dnf install tlp tlp-rdw`. Masking the service alone is not enough.
 10. **Tarball extraction path**: GitHub's tarball top-level dir is `<repo>-<branch>/`. Use `tar xz --strip-components=1` to flatten.
 11. **Unsupported targets must exit before sudo**: full detection currently requires downloading and sourcing the repo first, but `sudo -v` must stay after target resolution so unsupported machines are never asked for elevated privileges.
 
