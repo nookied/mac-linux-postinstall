@@ -115,7 +115,9 @@ tui_checklist() {
         # Cap at actual item count — prevents the dialog being taller than needed,
         # which causes whiptail to overflow/render incorrectly on small terminals.
         [ "$list_height" -gt "$num_items" ] && list_height=$num_items
-        [ "$list_height" -lt 3 ] && list_height=3
+        [ "$list_height" -lt 1 ] && list_height=1
+        # Enforce a minimum of 3 only when there are enough items to fill it.
+        [ "$num_items" -ge 3 ] && [ "$list_height" -lt 3 ] && list_height=3
 
         # whiptail writes the selection to stderr (because stdout is for the UI),
         # so redirect 3>&1 1>&2 2>&3 to swap them.
